@@ -3,7 +3,6 @@ Software handles 2 rotary encoders with button ability and 4 buttons with integr
 
 * Rotary Encoder 1: Volume and Mute
 * Rotary Encoder 2: Tuning and Menue
- 
 * Button 1: memory Button for stored stream
 * Button 2: memory Button for stored stream
 * Button 3: memory Button for stored stream
