@@ -2,8 +2,7 @@
 Hardware-Web Radio Project for the RaspberryPi with Hardware control support
 
 ## iRadio Linux Distribution
-The Linux Dustribution used is pipaos 
-http://pipaos.mitako.eu/
+The Linux Dustribution used is pipaos: http://pipaos.mitako.eu/  
 With a boot up time of about 12 seconds on a RPI (7 seconds on RPI2) it's okay for using it for a Hardware-WebRadio
 
 In future I'll try to get ones with faster boot time or create a distro with buildroot. But for now its okay as it is.
