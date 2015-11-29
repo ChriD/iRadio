@@ -34,6 +34,9 @@ namespace Module
         if(!BASS_SetDevice(deviceId))
             return failed("Failed setting device to " + to_string(deviceId));
 
+        if(!BASS_SetConfig(BASS_CONFIG_NET_TIMEOUT, 5000))
+            return failed("Failed raisng timout to " + to_string(deviceId));
+
         debugInfo("BASS Library init done for device: " + to_string(deviceId));
 
         return ret;

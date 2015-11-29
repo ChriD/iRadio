@@ -1,0 +1,25 @@
+#include "ModuleAudioPlayer_BASS.h"
+
+
+namespace Module
+{
+
+    ModuleAudioPlayer_BASS::ModuleAudioPlayer_BASS()
+    {
+    }
+
+    ModuleAudioPlayer_BASS::~ModuleAudioPlayer_BASS()
+    {
+    }
+
+    int ModuleAudioPlayer_BASS::init()
+    {
+        bool ret = ModuleAudioPlayer::init();
+        return ret;
+    }
+
+}
+
+
+
+

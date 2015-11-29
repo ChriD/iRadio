@@ -1,0 +1,22 @@
+#include "test.h"
+
+namespace Module
+{
+
+    TEST::TEST()
+    {
+    }
+
+    TEST::~TEST()
+    {
+    }
+
+    int TEST::init()
+    {
+        return true;
+    }
+
+}
+
+
+

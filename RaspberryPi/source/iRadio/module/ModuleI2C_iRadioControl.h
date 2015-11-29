@@ -28,6 +28,10 @@ namespace Module
             sigs::signal<void(int)> sigMemButtonClickedLong;
             sigs::signal<void()> sigVolumeButtonClicked;
             sigs::signal<void()> sigTunerButtonClicked;
+            sigs::signal<void()> sigVolumeButtonClickedLong;
+            sigs::signal<void()> sigTunerButtonClickedLong;
+            sigs::signal<void()> sigVolumeButtonDoubleClicked;
+            sigs::signal<void()> sigTunerButtonDoubleClicked;
 
         protected:
             void listenControlResponse(atomic_bool &_stopPolling);

@@ -59,6 +59,10 @@ class iRadioApp : BaseObject
         void onTunerChanged(int);
         void onVolumeButtonClicked();
         void onTunerButtonClicked();
+        void onVolumeButtonDoubleClicked();
+        void onTunerButtonDoubleClicked();
+        void onVolumeButtonClickedLong();
+        void onTunerButtonClickedLong();
         void onMemButtonClicked(int);
         void onMemButtonClickedLong(int);
 
@@ -74,6 +78,10 @@ class iRadioApp : BaseObject
         sigs::connections   sigConTunerChanged;
         sigs::connections   sigConVolumeButtonClicked;
         sigs::connections   sigConTunerButtonClicked;
+        sigs::connections   sigConVolumeButtonClickedLong;
+        sigs::connections   sigConTunerButtonClickedLong;
+        sigs::connections   sigConVolumeButtonDoubleClicked;
+        sigs::connections   sigConTunerButtonDoubleClicked;
         sigs::connections   sigMemButtonClicked;
         sigs::connections   sigMemButtonClickedLong;
 };

@@ -43,12 +43,16 @@ int iRadioApp::init()
     else
         loadMem();
 
-    sigConVolumeChanged.connect(            moduleRadioControl->sigVolumeChanged,           this, &iRadioApp::onVolumeChanged);
-    sigConTunerChanged.connect(             moduleRadioControl->sigTunerChanged,            this, &iRadioApp::onTunerChanged);
-    sigConVolumeButtonClicked.connect(      moduleRadioControl->sigVolumeButtonClicked,     this, &iRadioApp::onVolumeButtonClicked);
-    sigConTunerButtonClicked.connect(       moduleRadioControl->sigTunerButtonClicked,      this, &iRadioApp::onTunerButtonClicked);
-    sigMemButtonClicked.connect(            moduleRadioControl->sigMemButtonClicked,        this, &iRadioApp::onMemButtonClicked);
-    sigMemButtonClickedLong.connect(        moduleRadioControl->sigMemButtonClickedLong,    this, &iRadioApp::onMemButtonClickedLong);
+    sigConVolumeChanged.connect(            moduleRadioControl->sigVolumeChanged,               this, &iRadioApp::onVolumeChanged);
+    sigConTunerChanged.connect(             moduleRadioControl->sigTunerChanged,                this, &iRadioApp::onTunerChanged);
+    sigConVolumeButtonClicked.connect(      moduleRadioControl->sigVolumeButtonClicked,         this, &iRadioApp::onVolumeButtonClicked);
+    sigConTunerButtonClicked.connect(       moduleRadioControl->sigTunerButtonClicked,          this, &iRadioApp::onTunerButtonClicked);
+    sigMemButtonClicked.connect(            moduleRadioControl->sigMemButtonClicked,            this, &iRadioApp::onMemButtonClicked);
+    sigMemButtonClickedLong.connect(        moduleRadioControl->sigMemButtonClickedLong,        this, &iRadioApp::onMemButtonClickedLong);
+    sigConVolumeButtonDoubleClicked.connect(moduleRadioControl->sigVolumeButtonDoubleClicked,   this, &iRadioApp::onVolumeButtonDoubleClicked);
+    sigConTunerButtonDoubleClicked.connect( moduleRadioControl->sigTunerButtonDoubleClicked,    this, &iRadioApp::onTunerButtonDoubleClicked);
+    sigConVolumeButtonClickedLong.connect(  moduleRadioControl->sigVolumeButtonClickedLong,     this, &iRadioApp::onVolumeButtonClickedLong);
+    sigConTunerButtonClickedLong.connect(   moduleRadioControl->sigTunerButtonClickedLong,      this, &iRadioApp::onTunerButtonClickedLong);
 
     return true;
 }
@@ -87,7 +91,35 @@ void iRadioApp::onVolumeButtonClicked()
 void iRadioApp::onTunerButtonClicked()
 {
     debugInfo("Tune button clicked");
-    // TODO: Menu???
+    // TODO: @@@
+}
+
+
+void iRadioApp::onVolumeButtonDoubleClicked()
+{
+    debugInfo("Volume button double-clicked");
+    // TODO: @@@
+}
+
+
+void iRadioApp::onTunerButtonDoubleClicked()
+{
+    debugInfo("tuner button double-clicked");
+    // TODO: @@@
+}
+
+
+void iRadioApp::onVolumeButtonClickedLong()
+{
+    debugInfo("volume button clicked long");
+    // TODO: @@@
+}
+
+
+void iRadioApp::onTunerButtonClickedLong()
+{
+    debugInfo("Tune button clicked long");
+    // TODO: @@@
 }
 
 

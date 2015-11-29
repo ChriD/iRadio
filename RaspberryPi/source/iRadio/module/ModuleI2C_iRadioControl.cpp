@@ -91,7 +91,7 @@ namespace Module
 
                 // check if the result vector has the appropiate size. It should always have this because
                 // we did some interrupt safety on the arduino side of the app
-                if(results.size() < 6)
+                if(results.size() < 10)
                 {
                     failed("Returend data is too short! (Having: " + to_string(results.size()) + ")");
                     continue;
@@ -130,6 +130,26 @@ namespace Module
                 if(stoi(results[5]) != 0)
                 {
                     sigTunerButtonClicked.fire();
+                }
+
+                if(stoi(results[6]) != 0)
+                {
+                    sigVolumeButtonDoubleClicked.fire();
+                }
+
+                if(stoi(results[7]) != 0)
+                {
+                    sigTunerButtonDoubleClicked.fire();
+                }
+
+                 if(stoi(results[8]) != 0)
+                {
+                    sigVolumeButtonClickedLong.fire();
+                }
+
+                if(stoi(results[9]) != 0)
+                {
+                    sigTunerButtonClickedLong.fire();
                 }
 
             }
