@@ -40,8 +40,12 @@
 
   int lastMemButtonPressed      = 0;
   int lastMemButtonLongPressed  = 0;
+
+  int tuneButtonPressed   = 0;
+  int volumeButtonPressed = 0;
   
   bool masterOnline = false;
+  bool requestDone = false;
 
   // some vars for LED dancing
   int danceLedState = false;   
@@ -49,6 +53,7 @@
   const long danceInterval = 200;  
 
   String I2CReturnString;
+  String I2CReturnStringBuildHelper;
     
   void setup()                   
   {     
@@ -90,11 +95,19 @@
     memButton3.attachLongPressStop(memButton3_longPressStop);
     memButton4.attachLongPressStop(memButton4_longPressStop);
     //memButton5.attachLongPressStop(memButton5_longPressStop);
+
+    buildI2CReturnString(); 
    
   }
    
   void loop()                     
   {
+    if(requestDone)    
+    {
+      requestDone = false;
+      buildI2CReturnString();
+    }
+    
     if(masterOnline)
     {
       memButton1.tick();
@@ -140,26 +153,39 @@
     {      
       rotaryPos_Volume  = rotaryPos_VolumeNew;
       rotaryPos_Tune    = rotaryPos_TuneNew;
-      buildI2CReturnString(); // only for test
+      buildI2CReturnString(); 
     }    
   }
 
 
+  // handle requests from master. we have to be sure that we do not do time intense stuff here becvause of
+  // the I2C timing (interrupts). Otherwise it wont work!
   void I2CRequest() 
-  {
-    Serial.println("I2CRequest");
-    // when we are return values for our master we are creating the return string from the current last values of each button 
-    buildI2CReturnString(); 
+  {     
+    // there may be a problem of buffer overrun if we send more than 32bytes so we try to keep the
+    // sent value lower than that. Otherwise we may use something like the following commented code
+    // but there we have to change the master code which runs on the rpi too...
+    /*
+      for (int x = 0; x < 194; x++)
+      {
+        Wire.beginTransmission (ADDRESS);
+        Wire.send (x);
+        Wire.endTransmission ();
+      }
+    */
     char *p = const_cast<char*>(I2CReturnString.c_str());
     Wire.write(p);     
-    // other than the rotary tick values we have to reset the mem and long pressed state 
-    lastMemButtonPressed = 0;
-    lastMemButtonLongPressed = 0;
+   
+    // other than the rotary tick values we have to reset the mem, pressed and long pressed state 
+    lastMemButtonPressed      = 0;
+    lastMemButtonLongPressed  = 0;
+    volumeButtonPressed       = 0;
+    tuneButtonPressed         = 0;
+    requestDone               = true;
   }
 
   void I2CReceive(int howMany)
   {
-    Serial.println("I2CReceive");
     int cmdRcvd = -1;  
     if (Wire.available())
     {
@@ -167,12 +193,21 @@
       cmdRcvd = Wire.read();   
       switch(cmdRcvd)
       {
+        case 0: lowButtonLeds(); break;
         case 1: highButtonLedPin(buttonIdToLedPin(1), true); break;
         case 2: highButtonLedPin(buttonIdToLedPin(2), true); break;
         case 3: highButtonLedPin(buttonIdToLedPin(3), true); break;
         case 4: highButtonLedPin(buttonIdToLedPin(4), true); break;
         //case 5: highButtonLedPin(buttonIdToLedPin(5), true); break;
-        case 98: masterOnline = true;   lowButtonLeds(); break;
+        // when master comes online we have to set back the rotary encoders to prevent volume skiping (when encoder is moved while master is offline)     
+        case 98:  rotaryPos_Volume = 0;
+                  rotaryPos_Tune = 0;
+                  volumeRotaryEncoder.write(0);
+                  tuneRotaryEncoder.write(0);
+                  buildI2CReturnString();
+                  lowButtonLeds(); 
+                  masterOnline = true; 
+                  break;
         case 99: masterOnline = false;  lowButtonLeds(); break;
       }
     }   
@@ -180,12 +215,22 @@
 
   void buildI2CReturnString()
   { 
-    I2CReturnString = "";
-    addI2CRequestKeyValue("MEM", String(lastMemButtonLongPressed));  
-    addI2CRequestKeyValue("STREAM", String(lastMemButtonPressed)); 
-    addI2CRequestKeyValue("VOL", String(rotaryPos_Volume));  
-    addI2CRequestKeyValue("TUNE", String(rotaryPos_Tune));
-    Serial.println(I2CReturnString); 
+    
+    I2CReturnStringBuildHelper = "";
+    addI2CRequestValue("", String(lastMemButtonLongPressed));  
+    addI2CRequestValue("", String(lastMemButtonPressed)); 
+    addI2CRequestValue("", String(rotaryPos_Volume));  
+    addI2CRequestValue("", String(rotaryPos_Tune));   
+    addI2CRequestValue("", String(volumeButtonPressed));
+    addI2CRequestValue("", String(tuneButtonPressed));
+    I2CReturnStringBuildHelper += "§";
+
+    // be sure that "I2CReturnString" is only touched a short time
+    // and the other thing is we have to be sure that the interrupts are disabled while copying the string
+    uint8_t SaveSREG = SREG;   // save interrupt flag
+    cli();                     // disable interrupts    
+    I2CReturnString = I2CReturnStringBuildHelper;
+    SREG = SaveSREG;          // restore the interrupt flag
   }
 
   void lowButtonLeds()
@@ -199,11 +244,20 @@
 
   void addI2CRequestKeyValue(String _key, String _value)
   {
-    if(I2CReturnString != "")
+    if(I2CReturnStringBuildHelper != "")
     {
-      I2CReturnString += I2CDataDelimiter;
+      I2CReturnStringBuildHelper += I2CDataDelimiter;
     }
-    I2CReturnString += _key + I2CKeyDelimiter + _value;      
+    I2CReturnStringBuildHelper += _key + I2CKeyDelimiter + _value;      
+  }
+
+  void addI2CRequestValue(String _key, String _value)
+  {
+    if(I2CReturnStringBuildHelper != "")
+    {
+      I2CReturnStringBuildHelper += I2CDataDelimiter;
+    }
+    I2CReturnStringBuildHelper += _value;      
   }
 
   int buttonIdToLedPin(int _buttonId)
@@ -250,23 +304,25 @@
   void action_StoreCurrentStream(int _button)
   {  
     lastMemButtonLongPressed = _button;
+    buildI2CReturnString();
   }
 
   void action_SelectMemStream(int _button)
   {      
     lastMemButtonPressed = _button;   
+    buildI2CReturnString();
   }
 
   void volumeRotaryButton_clicked() 
   {
-    // TODO: @@@
-    Serial.println("Volume Rotary Button clicked"); 
+    volumeButtonPressed = 1;
+    buildI2CReturnString();
   }
 
   void tuneRotaryButton_clicked() 
   {
-    // TODO: @@@
-    Serial.println("Tune Rotary Button clicked"); 
+    tuneButtonPressed = 1;
+    buildI2CReturnString();
   }
 
 

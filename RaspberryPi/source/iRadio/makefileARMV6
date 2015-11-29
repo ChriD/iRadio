@@ -1,0 +1,36 @@
+# Makefile
+
+INCPATH = -I /usr/development/_libs/libbass_ARM/ -I /usr/development/_libs/wiringPi_ARMV6/include/ -I /usr/development/iRadio/module/ -I /usr/development/_libs/signals/signals-cpp/ -I /usr/development/iRadio/
+
+CC = /usr/packages/RaspberryPiTools/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-g++
+CXX = /usr/packages/RaspberryPiTools/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-g++
+CFLAGS = -std=c++0x -fPIC -Wall -Wextra -O2 -c -pthread $(INCPATH)
+CXXFLAGS = -std=c++0x -fPIC -Wall -Wextra -O2 -c -pthread $(INCPATH)
+LDFLAGS = -lm -lrt -static-libgcc -static-libstdc++ -Wl,-rpath,libs/ARMV6/
+
+LIBSDEF = libs/ARMV6/libbass.so libs/ARMV6/libwiringPi.so.2.25 libs/ARMV6/libwiringPiDev.so.2.25 
+
+RM = rm -f 
+TARGET_EXEC = iRadio
+ 
+SRCS = iRadio.cpp BaseObject.cpp iRadioApp.cpp inifile.cpp module/Module.cpp module/ModuleI2C.cpp module/ModuleI2C_iRadioControl.cpp module/ModuleAudioPlayer.cpp module/ModuleAudioPlayer_BASS.cpp
+
+
+OBJS = $(SRCS:.cpp=.o)
+
+
+.PHONY: all
+all: ${TARGET_EXEC}
+ 
+$(TARGET_EXEC): $(OBJS)
+	$(CC) ${LDFLAGS} -o $@ $^ $(LIBSDEF)
+ 
+$(SRCS:.cpp=.d):%.d:%.cpp
+	$(CC) $(CFLAGS) -MM $< >$@
+ 
+include $(SRCS:.cpp=.d)
+ 
+
+.PHONY: clean
+clean:
+	-${RM} ${TARGET_EXEC} ${OBJS} $(SRCS:.cpp=.d) 
