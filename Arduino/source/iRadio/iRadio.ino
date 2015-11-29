@@ -34,6 +34,8 @@
   int memButton3_longPressStartMS = 0;
   int memButton4_longPressStartMS = 0;
   int memButton5_longPressStartMS = 0;
+  int tuneButton_longPressStartMS = 0;
+  int volumeButton_longPressStartMS = 0;
 
   long rotaryPos_Volume = 0;
   long rotaryPos_Tune   = 0;
@@ -41,8 +43,12 @@
   int lastMemButtonPressed      = 0;
   int lastMemButtonLongPressed  = 0;
 
-  int tuneButtonPressed   = 0;
-  int volumeButtonPressed = 0;
+  int tuneButtonPressed           = 0;
+  int volumeButtonPressed         = 0;
+  int tuneButtonDoubleClicked     = 0;
+  int volumeButtonDoubleClicked   = 0;
+  int tuneButtonLongPressed       = 0;
+  int volumeButtonLongPressed     = 0;
   
   bool masterOnline = false;
   bool requestDone = false;
@@ -78,23 +84,32 @@
     volumeRotaryButton.attachClick(volumeRotaryButton_clicked);      
     tuneRotaryButton.attachClick(tuneRotaryButton_clicked); 
 
+    volumeRotaryButton.attachDoubleClick(volumeRotaryButton_doubleClicked);
+    tuneRotaryButton.attachDoubleClick(tuneRotaryButton_doubleClicked);
+
     memButton1.attachLongPressStart(memButton1_longPressStart);
     memButton2.attachLongPressStart(memButton2_longPressStart);
     memButton3.attachLongPressStart(memButton3_longPressStart);
     memButton4.attachLongPressStart(memButton4_longPressStart);
     //memButton5.attachLongPressStart(memButton5_longPressStart);
+    volumeRotaryButton.attachLongPressStart(volumeRotaryButton_longPressStart);
+    tuneRotaryButton.attachLongPressStart(tuneRotaryButton_longPressStart);
     
     memButton1.attachDuringLongPress(memButton1_longPress);
     memButton2.attachDuringLongPress(memButton2_longPress);
     memButton3.attachDuringLongPress(memButton3_longPress);
     memButton4.attachDuringLongPress(memButton4_longPress);
     //memButton5.attachDuringLongPress(memButton5_longPress);
+    volumeRotaryButton.attachDuringLongPress(volumeRotaryButton_longPress);
+    tuneRotaryButton.attachDuringLongPress(tuneRotaryButton_longPress);
 
     memButton1.attachLongPressStop(memButton1_longPressStop);
     memButton2.attachLongPressStop(memButton2_longPressStop);
     memButton3.attachLongPressStop(memButton3_longPressStop);
     memButton4.attachLongPressStop(memButton4_longPressStop);
     //memButton5.attachLongPressStop(memButton5_longPressStop);
+    volumeRotaryButton.attachLongPressStop(volumeRotaryButton_longPressStop);
+    tuneRotaryButton.attachLongPressStop(tuneRotaryButton_longPressStop);
 
     buildI2CReturnString(); 
    
@@ -177,11 +192,15 @@
     Wire.write(p);     
    
     // other than the rotary tick values we have to reset the mem, pressed and long pressed state 
-    lastMemButtonPressed      = 0;
-    lastMemButtonLongPressed  = 0;
-    volumeButtonPressed       = 0;
-    tuneButtonPressed         = 0;
-    requestDone               = true;
+    lastMemButtonPressed        = 0;
+    lastMemButtonLongPressed    = 0;
+    volumeButtonPressed         = 0;
+    tuneButtonPressed           = 0;
+    tuneButtonDoubleClicked     = 0;
+    volumeButtonDoubleClicked   = 0;
+    tuneButtonLongPressed       = 0;
+    volumeButtonLongPressed     = 0;
+    requestDone                 = true;
   }
 
   void I2CReceive(int howMany)
@@ -223,6 +242,12 @@
     addI2CRequestValue("", String(rotaryPos_Tune));   
     addI2CRequestValue("", String(volumeButtonPressed));
     addI2CRequestValue("", String(tuneButtonPressed));
+
+    addI2CRequestValue("", String(volumeButtonDoubleClicked));
+    addI2CRequestValue("", String(tuneButtonDoubleClicked));
+    addI2CRequestValue("", String(volumeButtonLongPressed));
+    addI2CRequestValue("", String(tuneButtonLongPressed));
+    
     I2CReturnStringBuildHelper += "§";
 
     // be sure that "I2CReturnString" is only touched a short time
@@ -319,12 +344,23 @@
     buildI2CReturnString();
   }
 
+  void volumeRotaryButton_doubleClicked() 
+  {
+    volumeButtonDoubleClicked = 1;
+    buildI2CReturnString();
+  }
+
   void tuneRotaryButton_clicked() 
   {
     tuneButtonPressed = 1;
     buildI2CReturnString();
   }
 
+  void tuneRotaryButton_doubleClicked() 
+  {
+    tuneButtonDoubleClicked  = 1;
+    buildI2CReturnString();
+  }
 
   void memButton1_clicked() 
   {
@@ -386,6 +422,16 @@
   } 
   */
 
+  void volumeRotaryButton_longPressStart() 
+  {
+    volumeButton_longPressStartMS = millis();
+  }
+
+  void tuneRotaryButton_longPressStart() 
+  {
+    tuneButton_longPressStartMS = millis();
+  } 
+
 
   void memButton1_longPressStop() 
   {
@@ -413,6 +459,16 @@
     memButton5_longPressStartMS = 0;
   } 
   */
+
+  void volumeRotaryButton_longPressStop() 
+  {
+    volumeButton_longPressStartMS = 0;
+  }
+
+  void tuneRotaryButton_longPressStop() 
+  {
+    tuneButton_longPressStartMS = 0;
+  } 
 
 
   void memButton1_longPress()   
@@ -466,6 +522,26 @@
     }    
   }
   */
+
+  void volumeRotaryButton_longPress() 
+  {
+    if(isStorePressTimeReached(volumeButton_longPressStartMS))   
+    {    
+      volumeButton_longPressStartMS = 0;
+      volumeButtonLongPressed = 1;
+      buildI2CReturnString();
+    }   
+  }
+
+  void tuneRotaryButton_longPress() 
+  {
+    if(isStorePressTimeReached(tuneButton_longPressStartMS))   
+    {    
+      tuneButton_longPressStartMS = 0;
+      tuneButtonLongPressed = 1;
+      buildI2CReturnString();
+    }   
+  } 
 
 
 
