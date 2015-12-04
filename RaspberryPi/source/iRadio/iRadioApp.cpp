@@ -3,15 +3,19 @@
 
 iRadioApp::iRadioApp() : BaseObject()
 {
-    moduleRadioControl  = nullptr;
-    moduleAudioPlayer   = nullptr;
+    moduleRadioControl      = nullptr;
+    moduleAudioPlayer       = nullptr;
+    moduleDisplay           = nullptr;
 
-    iniFileNameState    = "state.ini";
-    iniFileNameMem      = "mem.ini";
+    iniFileNameState        = "state.ini";
+    iniFileNameMem          = "mem.ini";
+    iniFileNameAppSettings  = "app.ini";
 
-    currentStreamUrl    = "";
-    currentSelectedMem  = 0;
-    currentVolume       = 0.10;
+    currentStreamUrl        = "";
+    currentSelectedMem      = 0;
+    currentVolume           = 0.10;
+
+    tempDisplayTextHoldTickCount = 20;
 }
 
 iRadioApp::~iRadioApp()
@@ -23,6 +27,8 @@ iRadioApp::~iRadioApp()
         delete moduleRadioControl;
     if(moduleAudioPlayer != nullptr)
         delete moduleAudioPlayer;
+    if(moduleDisplay != nullptr)
+        delete moduleDisplay;
 
     cout << "iRadio shutdown!\n";
 }
@@ -30,8 +36,11 @@ iRadioApp::~iRadioApp()
 
 int iRadioApp::init()
 {
-    moduleRadioControl  = new Module::ModuleI2C_iRadioControl(20);
-    moduleAudioPlayer   = new Module::ModuleAudioPlayer_BASS();
+    string  soundDeviceIdString, radioControlI2CAddressString;
+    int     soundDeviceId = 2, radioControlI2CAddress = 20;
+
+    if(!iniObjectAppSettings.Load(iniFileNameAppSettings))
+        debugInfo("Can not load App INI File: "  + iniFileNameAppSettings + " -> Using defaults!");
 
     // load ini file for state of radio which contains infos about volume and last played stream
     // we do not error if we did not found some because then it may be the first start of the app
@@ -43,6 +52,16 @@ int iRadioApp::init()
     else
         loadMem();
 
+    soundDeviceIdString = iniObjectAppSettings.GetKeyValue("AppSettings", "SoundDeviceId");
+    if(!soundDeviceIdString.empty()) soundDeviceId = ::atoi(soundDeviceIdString.c_str());
+
+    radioControlI2CAddressString = iniObjectAppSettings.GetKeyValue("AppSettings", "RadioControlI2CAddress");
+    if(!radioControlI2CAddressString.empty()) radioControlI2CAddress = ::atoi(radioControlI2CAddressString.c_str());
+
+    moduleRadioControl  = new Module::ModuleI2C_iRadioControl(radioControlI2CAddress);
+    moduleAudioPlayer   = new Module::ModuleAudioPlayer_BASS(soundDeviceId);
+    moduleDisplay       = new Module::ModuleDisplay_LCD();
+
     sigConVolumeChanged.connect(            moduleRadioControl->sigVolumeChanged,               this, &iRadioApp::onVolumeChanged);
     sigConTunerChanged.connect(             moduleRadioControl->sigTunerChanged,                this, &iRadioApp::onTunerChanged);
     sigConVolumeButtonClicked.connect(      moduleRadioControl->sigVolumeButtonClicked,         this, &iRadioApp::onVolumeButtonClicked);
@@ -53,6 +72,7 @@ int iRadioApp::init()
     sigConTunerButtonDoubleClicked.connect( moduleRadioControl->sigTunerButtonDoubleClicked,    this, &iRadioApp::onTunerButtonDoubleClicked);
     sigConVolumeButtonClickedLong.connect(  moduleRadioControl->sigVolumeButtonClickedLong,     this, &iRadioApp::onVolumeButtonClickedLong);
     sigConTunerButtonClickedLong.connect(   moduleRadioControl->sigTunerButtonClickedLong,      this, &iRadioApp::onTunerButtonClickedLong);
+    sigAudioStreamInfoChanged.connect(      moduleAudioPlayer->sigAudioStreamInfoChanged,       this, &iRadioApp::onAudioStreamInfoChanged);
 
     return true;
 }
@@ -66,18 +86,18 @@ void iRadioApp::onVolumeChanged(int _diffVolume)
 
     volume += float(_diffVolume) / 100;
 
+    if(volume > 1.0)
+        volume = 1.0;
+    if(volume < 0.005)
+        volume = 0.0;
+
     if(moduleAudioPlayer->setVolume(volume))
     debugInfo("Volume changed to : " + to_string(volume) + " (" + to_string(_diffVolume) + ")");
 
     currentVolume = volume;
     saveState();
-}
 
-
-void iRadioApp::onTunerChanged(int _diffTuner)
-{
-    debugInfo("Tune changed: " + to_string(_diffTuner));
-    // TODO: Menu???
+    moduleDisplay->setVolumeInfo((unsigned int)(currentVolume * 100), tempDisplayTextHoldTickCount);
 }
 
 
@@ -85,6 +105,17 @@ void iRadioApp::onVolumeButtonClicked()
 {
     moduleAudioPlayer->setStreamMute(moduleAudioPlayer->getStreamMute() ? false : true);
     debugInfo("Setting mute state to: " + to_string(moduleAudioPlayer->getStreamMute()));
+    if(moduleAudioPlayer->getStreamMute())
+        moduleDisplay->setInfo("MUTE: EIN", tempDisplayTextHoldTickCount);
+    else
+        moduleDisplay->setInfo("MUTE: AUS", tempDisplayTextHoldTickCount);
+}
+
+
+void iRadioApp::onTunerChanged(int _diffTuner)
+{
+    debugInfo("Tune changed: " + to_string(_diffTuner));
+    // TODO: Menu???
 }
 
 
@@ -104,14 +135,14 @@ void iRadioApp::onVolumeButtonDoubleClicked()
 
 void iRadioApp::onTunerButtonDoubleClicked()
 {
-    debugInfo("tuner button double-clicked");
+    debugInfo("Tuner button double-clicked");
     // TODO: @@@
 }
 
 
 void iRadioApp::onVolumeButtonClickedLong()
 {
-    debugInfo("volume button clicked long");
+    debugInfo("Volume button clicked long");
     // TODO: @@@
 }
 
@@ -144,15 +175,17 @@ void iRadioApp::onMemButtonClicked(int _memId)
         failed("Loading stream from MEM '" + to_string(_memId) + "' failed! Nothing saved there!");
         playErrorSound();
         moduleRadioControl->setLed(currentSelectedMem);
+        moduleDisplay->setErrorInfo("Speicher leer", tempDisplayTextHoldTickCount);
         return;
     }
 
     currentStreamUrl = tmpStreamUrl;
 
-    if(!moduleAudioPlayer->playStream(currentStreamUrl))
+    if(!moduleAudioPlayer->playStream(currentStreamUrl, false))
     {
         failed("Loading stream '" + currentStreamUrl + "' from MEM '" + to_string(_memId) + "' failed!");
         playErrorSound();
+        moduleDisplay->setErrorInfo("Laden fehlg.", tempDisplayTextHoldTickCount);
         return;
     }
 
@@ -169,6 +202,7 @@ void iRadioApp::onMemButtonClickedLong(int _memId)
     {
         failed("Saving stream '" + currentStreamUrl + "' to MEM '" + to_string(_memId) + "' failed");
         playErrorSound();
+        moduleDisplay->setErrorInfo("Speichern fehlg.", tempDisplayTextHoldTickCount);
         return;
     }
 
@@ -179,6 +213,15 @@ void iRadioApp::onMemButtonClickedLong(int _memId)
     saveState();
 
     playSuccessSound();
+
+    moduleDisplay->setInfo("Gespeichert: " + to_string(_memId), tempDisplayTextHoldTickCount);
+}
+
+
+void iRadioApp::onAudioStreamInfoChanged(Module::AudioStreamInfo _audioStreamInfo)
+{
+    debugInfo("Audio stream info changed");
+    moduleDisplay->setAudioStreamInfo(_audioStreamInfo);
 }
 
 
@@ -200,6 +243,8 @@ void iRadioApp::resumeState()
     string          curVolumeString, curSelectedMemString;
 
     debugInfo("Resuming state...");
+
+    moduleDisplay->setInfo("Fortsetzen...", tempDisplayTextHoldTickCount);
 
     currentStreamUrl        = iniObjectState.GetKeyValue("LastState", "Stream");
     curVolumeString         = iniObjectState.GetKeyValue("LastState", "Volume");
@@ -223,7 +268,7 @@ void iRadioApp::resumeState()
 
     // resume playing last played stream
     if(!currentStreamUrl.empty())
-        moduleAudioPlayer->playStream(currentStreamUrl);
+        moduleAudioPlayer->playStream(currentStreamUrl, true);
 
     debugInfo("Resuming state done!");
 }
@@ -243,7 +288,7 @@ void iRadioApp::saveState()
 
 void iRadioApp::saveMem()
 {
-    for(int i=0; i<streamMemory.size(); ++i)
+    for(unsigned int i=0; i<streamMemory.size(); ++i)
     {
         iniObjectMem.AddSection("MEM")->AddKey("Stream" + to_string(i+1))->SetValue(streamMemory[i]);
     }
@@ -255,7 +300,7 @@ void iRadioApp::saveMem()
 
 void iRadioApp::loadMem()
 {
-    for(int i=0; i<streamMemory.size(); ++i)
+    for(unsigned int i=0; i<streamMemory.size(); ++i)
     {
         streamMemory[i] = iniObjectMem.GetKeyValue("MEM", "Stream" + to_string(i+1));
         debugInfo("Fill MEM" + to_string(i+1) + ": " + streamMemory[i]);
@@ -265,7 +310,9 @@ void iRadioApp::loadMem()
 
 void iRadioApp::run()
 {
-     cout << "Starting iRadio...\n";
+    cout << "Starting iRadio...\n";
+
+    init();
 
     if(!moduleAudioPlayer->init())
     {
@@ -275,6 +322,11 @@ void iRadioApp::run()
     if(!moduleRadioControl->init())
     {
         cout << "Error while init of Radio Control Module!\n";
+    }
+
+    if(!moduleDisplay->init())
+    {
+        cout << "Error while init of Display Control Module!\n";
     }
 
     resumeState();

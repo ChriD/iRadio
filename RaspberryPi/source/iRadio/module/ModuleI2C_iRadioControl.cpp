@@ -14,7 +14,7 @@ namespace Module
     {
         if(listenerStarted)
         {
-        // wait for thread to finish
+            // wait for thread to finish
             debugInfo("Shuting down I2C polling...");
             stopPolling = true;
             if(pollingThread.joinable())
@@ -48,7 +48,7 @@ namespace Module
         if(!listenerStarted)
         {
             debugInfo("Starting I2C listener...");
-            pollingThread = thread(&ModuleI2C_iRadioControl::listenControlResponse, this, ref(stopPolling));
+            pollingThread = thread(&ModuleI2C_iRadioControl::listenControlResponseThread, this, ref(stopPolling));
             listenerStarted = true;
             debugInfo("I2C listener started.");
         }
@@ -61,7 +61,7 @@ namespace Module
     }
 
 
-    void ModuleI2C_iRadioControl::listenControlResponse(atomic_bool &_stopPolling)
+    void ModuleI2C_iRadioControl::listenControlResponseThread(atomic_bool &_stopPolling)
     {
         char buf[100];
         string resultString = "";
@@ -155,7 +155,7 @@ namespace Module
             }
             catch(...)
             {
-                failed("Exception...");
+                failed("Exception in listen I2C thread...");
             }
 
             this_thread::sleep_for(std::chrono::milliseconds(50));

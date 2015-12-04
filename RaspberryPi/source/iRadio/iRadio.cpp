@@ -2,6 +2,9 @@
 
 #include "iRadioApp.h"
 
+
+
+
 using namespace std;
 
 
@@ -9,9 +12,8 @@ int main()
 {
 
     char c= ' ';
-    iRadioApp       app;
+    iRadioApp                   app;
 
-    app.init();
     app.run();
 
 
@@ -19,9 +21,13 @@ int main()
 	{
 		c = rlutil::getkey();
 
+		if(c == 't')
+		{
+		}
+
 	} while (c != 27 && c!= '\0');
 
-
+    cout << c;
 
 
     return 0;

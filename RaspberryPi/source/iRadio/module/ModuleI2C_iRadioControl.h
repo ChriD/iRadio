@@ -34,7 +34,7 @@ namespace Module
             sigs::signal<void()> sigTunerButtonDoubleClicked;
 
         protected:
-            void listenControlResponse(atomic_bool &_stopPolling);
+            void listenControlResponseThread(atomic_bool &_stopPolling);
             atomic_bool stopPolling;
             bool listenerStarted;
             thread pollingThread;

@@ -30,6 +30,7 @@
 // https://github.com/ChriD/iRadio
 #include <ModuleI2C_iRadioControl.h>
 #include <ModuleAudioPlayer_BASS.h>
+#include <ModuleDisplay_LCD.h>
 
 
 class iRadioApp : BaseObject
@@ -43,17 +44,21 @@ class iRadioApp : BaseObject
     protected:
         Module::ModuleI2C_iRadioControl     *moduleRadioControl;
         Module::ModuleAudioPlayer_BASS      *moduleAudioPlayer;
+        Module::ModuleDisplay_LCD           *moduleDisplay;
 
         string          iniFileNameMem;
         string          iniFileNameState;
+        string          iniFileNameAppSettings;
         CIniFile        iniObjectState;
         CIniFile        iniObjectMem;
+        CIniFile        iniObjectAppSettings;
 
         std::array<string, 10> streamMemory;
 
         string          currentStreamUrl;
         float           currentVolume;
         unsigned int    currentSelectedMem;
+        unsigned int    tempDisplayTextHoldTickCount;
 
         void onVolumeChanged(int);
         void onTunerChanged(int);
@@ -65,6 +70,7 @@ class iRadioApp : BaseObject
         void onTunerButtonClickedLong();
         void onMemButtonClicked(int);
         void onMemButtonClickedLong(int);
+        void onAudioStreamInfoChanged(Module::AudioStreamInfo);
 
         void saveState();
         void resumeState();
@@ -84,6 +90,7 @@ class iRadioApp : BaseObject
         sigs::connections   sigConTunerButtonDoubleClicked;
         sigs::connections   sigMemButtonClicked;
         sigs::connections   sigMemButtonClickedLong;
+        sigs::connections   sigAudioStreamInfoChanged;
 };
 
 

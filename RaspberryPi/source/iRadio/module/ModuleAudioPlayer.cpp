@@ -4,8 +4,9 @@
 namespace Module
 {
 
-    ModuleAudioPlayer::ModuleAudioPlayer()
+    ModuleAudioPlayer::ModuleAudioPlayer(int _deviceId)
     {
+        deviceId = _deviceId;
     }
 
     ModuleAudioPlayer::~ModuleAudioPlayer()
@@ -23,7 +24,7 @@ namespace Module
         return true;
     }
 
-    bool ModuleAudioPlayer::playStream(string _streamUrl)
+    bool ModuleAudioPlayer::playStream(string _streamUrl, bool _retryOnTimout)
     {
         return true;
     }

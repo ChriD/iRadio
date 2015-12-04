@@ -17,6 +17,11 @@ namespace Module
             Module();
             virtual ~Module();
             virtual int init();
+
+        protected:
+            string &ltrim(string &);
+            string &rtrim(string &);
+            string &trim(string &);
     };
 
 }

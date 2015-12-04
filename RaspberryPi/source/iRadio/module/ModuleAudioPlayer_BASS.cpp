@@ -4,12 +4,12 @@
 namespace Module
 {
 
-    ModuleAudioPlayer_BASS::ModuleAudioPlayer_BASS()
+    ModuleAudioPlayer_BASS::ModuleAudioPlayer_BASS(int _deviceId) : ModuleAudioPlayer(_deviceId)
     {
-        deviceId        = 2; // TODO: specify device id in settings file
         freq            = 44100;
         req             = 0;
         streamHandle    = 0;
+        isStreamMute    = false;
     }
 
     ModuleAudioPlayer_BASS::~ModuleAudioPlayer_BASS()
@@ -70,13 +70,14 @@ namespace Module
     }
 
 
-    bool ModuleAudioPlayer_BASS::playStream(string _streamUrl)
+    bool ModuleAudioPlayer_BASS::playStream(string _streamUrl, bool _retryOnTimout)
     {
         bool ret = true;
+        int retryCount = 0;
         DWORD r;
         r = ++req;
 
-        ret = ModuleAudioPlayer::playStream(_streamUrl);
+        ret = ModuleAudioPlayer::playStream(_streamUrl, _retryOnTimout);
         if(ret)
         {
             // if we are already streaming we stop it
@@ -86,13 +87,27 @@ namespace Module
                     failed("Failed stopping stream with handle" + to_string(streamHandle));
             }
 
-            streamHandle = BASS_StreamCreateURL(_streamUrl.c_str(), 0, BASS_STREAM_BLOCK | BASS_STREAM_STATUS | BASS_STREAM_AUTOFREE, nullptr, (void*)r);
+            do
+            {
+                streamHandle = BASS_StreamCreateURL(_streamUrl.c_str(), 0, BASS_STREAM_BLOCK | BASS_STREAM_STATUS | BASS_STREAM_AUTOFREE, nullptr, (void*)r);
+                retryCount ++;
+            }
+            while(_retryOnTimout && retryCount <= 3 && !streamHandle && BASS_ErrorGetCode() == 40);
+
             if(!streamHandle)
                 return failed("Failed creating stream with error: " + to_string(BASS_ErrorGetCode()));
             debugInfo("Created stream with handle " + to_string(streamHandle));
 
             // set mute state again because we have a new stream handle!
             setStreamMute(isStreamMute);
+
+            // get some information of the stream
+            updateAudioStreamInfo();
+
+            // set some callbacks for the meta info of the stream
+            BASS_ChannelSetSync(streamHandle, BASS_SYNC_META, 0, &ModuleAudioPlayer_BASS::MetaSync, this); // Shoutcast
+            BASS_ChannelSetSync(streamHandle, BASS_SYNC_OGG_CHANGE, 0, &ModuleAudioPlayer_BASS::MetaSync, this); // Icecast/OGG
+
 
             if(!BASS_ChannelPlay(streamHandle, FALSE))
                 return failed("Failed playing stream " + to_string(streamHandle) + " with error: " + to_string(BASS_ErrorGetCode()));
@@ -187,6 +202,128 @@ namespace Module
     bool ModuleAudioPlayer_BASS::getStreamMute()
     {
         return isStreamMute;
+    }
+
+
+    void ModuleAudioPlayer_BASS::updateAudioStreamInfo()
+    {
+        // TODO: lock / unlock mutex stream info var !!!
+        try
+        {
+
+            const char *meta    = BASS_ChannelGetTags(streamHandle, BASS_TAG_META);
+            const char *icy     = BASS_ChannelGetTags(streamHandle, BASS_TAG_ICY);
+
+            if(!icy)    icy     = BASS_ChannelGetTags(streamHandle, BASS_TAG_HTTP);
+            if(!meta)   meta    = BASS_ChannelGetTags(streamHandle, BASS_TAG_OGG);
+
+            // we got a pointer to a series of null-terminated strings, the final string ending with a double null.
+            if(icy)
+            {
+                // run through all the 'pointer strings'
+                for (; *icy; icy += strlen(icy) + 1)
+                {
+                    string icyInfo(icy);
+                    debugInfo("ICY: " + icyInfo);
+
+                    if(icyInfo.find("icy-name:") != std::string::npos)
+                    {
+                        string name = icyInfo.substr(9, icyInfo.length()-9);
+                        streamInfo.name = trim(name);
+                    }
+                    if(icyInfo.find("icy-description:") != std::string::npos)
+                    {
+                        string description = icyInfo.substr(16, icyInfo.length()-16);
+                        streamInfo.description = trim(description);
+                    }
+                    if(icyInfo.find("icy-genre:") != std::string::npos)
+                    {
+                        string genre = icyInfo.substr(10, icyInfo.length()-10);
+                        streamInfo.genre = trim(genre);
+                    }
+                    if(icyInfo.find("icy-br:") != std::string::npos)
+                    {
+                        string br = icyInfo.substr(7, icyInfo.length()-7);
+                        streamInfo.bitrate = trim(br);
+                    }
+                }
+            }
+
+            // set some standard text if there is no title
+            streamInfo.title = streamInfo.description;
+            // we got a pointer to a series of null-terminated strings, the final string ending with a double null.
+            // meta may be null. this search here for the data is not very nice, i have to improve this
+            if (meta)
+            {
+                string artist, title, streamTitle;
+
+                for (; *meta; meta += strlen(meta) + 1)
+                {
+                    string metaInfo(meta);
+                    debugInfo("META: " + metaInfo);
+
+
+                    if(metaInfo.find("StreamTitle='") != std::string::npos)
+                    {
+                        size_t posEnd = metaInfo.find(";", 13);
+                        if(posEnd != std::string::npos)
+                        {
+                            streamTitle = metaInfo.substr(13, posEnd - 13 - 1);
+                            if(streamTitle.length() > 0)
+                                streamInfo.title = trim(streamTitle);
+                        }
+                    }
+
+                    if(metaInfo.find("artist='") != std::string::npos)
+                    {
+                        size_t posEnd = metaInfo.find(";", 8);
+                        if(posEnd != std::string::npos)
+                        {
+                            artist = metaInfo.substr(8, posEnd - 8 - 1);
+                        }
+                    }
+
+                    if(metaInfo.find("title='") != std::string::npos)
+                    {
+                        size_t posEnd = metaInfo.find(";", 7);
+                        if(posEnd != std::string::npos)
+                        {
+                            title = metaInfo.substr(7, posEnd - 7 - 1) ;
+                        }
+                    }
+                }
+
+                if(!artist.empty() && streamTitle.empty())
+                {
+                    streamInfo.title = artist;
+                }
+
+                if(!title.empty() && streamTitle.empty())
+                {
+                    if(!artist.empty())
+                        streamInfo.title += " - ";
+                    streamInfo.title = title;
+                }
+            }
+
+            // signal subscribers that we have changed something
+            sigAudioStreamInfoChanged.fire(streamInfo);
+        }
+        catch(...)
+        {
+            failed("Exception on 'updateAudioStreamInfo()'");
+        }
+    }
+
+
+    void CALLBACK ModuleAudioPlayer_BASS::MetaSync(HSYNC _handle, DWORD _channel, DWORD _data, void *_user)
+    {
+        ModuleAudioPlayer_BASS *self=(ModuleAudioPlayer_BASS*)_user;
+
+        if(self == nullptr)
+            return;
+
+        self->updateAudioStreamInfo();
     }
 
 
