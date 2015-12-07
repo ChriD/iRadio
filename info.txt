@@ -1,14 +1,4 @@
 
-http://api.shoutcast.com/genre/primary?k=ia9p4XYXmOPEtXzL&f=json
-http://api.shoutcast.com/genre/secondary?parentid=1&k=ia9p4XYXmOPEtXzL&f=json
-
-http://api.shoutcast.com/legacy/genrelist?k=ia9p4XYXmOPEtXzL&f=json
-http://api.shoutcast.com/legacy/stationsearch?k=ia9p4XYXmOPEtXzL&search=Austria&f=json
-
-http://wiki.shoutcast.com/wiki/SHOUTcast_Radio_Directory_API#How_To_Tune_Into_A_Station
-url:
-http://yp.shoutcast.com<base>?id=[Station_id]
-
 6MB Linux
 https://www.raspberrypi.org/forums/viewtopic.php?f=63&t=47634
 http://sourceforge.net/projects/mini-wheezy/
