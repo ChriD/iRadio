@@ -19,6 +19,13 @@ namespace Hardware
         }
 
 
+        void DisplayTextPart_TitleInfo::setText(string _text, bool _resetTicks)
+        {
+            DisplayTextPart::setText(_text, _resetTicks);
+            textRotationCount = 0;
+        }
+
+
         void DisplayTextPart_TitleInfo::tick()
         {
             DisplayTextPart::tick();
@@ -79,6 +86,42 @@ namespace Hardware
                     text = center(originalText, colCount);
                 return;
             }
+        }
+
+
+        DisplayTextPart_DateTime::DisplayTextPart_DateTime(string _text, unsigned int _colCount) : DisplayTextPart(_text, _colCount)
+        {
+        }
+
+
+        DisplayTextPart_DateTime::~DisplayTextPart_DateTime()
+        {
+        }
+
+
+        void DisplayTextPart_DateTime::tick()
+        {
+            string      dateTimeString, dayString, monthString, hourString, minString;
+            time_t      timeNow = time(0);
+            struct      tm * now = localtime(&timeNow);
+
+            dayString   = to_string(now->tm_mday);
+            monthString = to_string((now->tm_mon + 1));
+            hourString  = to_string(now->tm_hour);
+            minString   = to_string(now->tm_min);
+
+            dayString   = padTo(dayString, 2, '0');
+            monthString = padTo(monthString, 2, '0');
+            hourString  = padTo(hourString, 2, '0');
+            minString   = padTo(minString, 2, '0');
+
+            DisplayTextPart::tick();
+
+            dateTimeString = dayString + "." + monthString + "." + to_string((now->tm_year + 1900));
+            dateTimeString += " " + hourString + ":" + minString;
+
+            text = dateTimeString;
+            text = center(text, colCount);
         }
 
 

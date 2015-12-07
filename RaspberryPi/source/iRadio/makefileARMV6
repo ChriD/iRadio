@@ -1,6 +1,6 @@
 # Makefile
 
-INCPATH = -I /usr/development/_libs/libbass_ARM/ -I /usr/development/_libs/wiringPi_ARMV6/include/ -I /usr/development/iRadio/module/ -I /usr/development/_libs/signals/signals-cpp/ -I /usr/development/iRadio/ 
+INCPATH = -I /usr/development/_libs/libbass_ARM/ -I /usr/development/_libs/wiringPi_ARMV6/include/ -I /usr/development/iRadio/module/ -I /usr/development/_libs/signals/signals-cpp/ -I /usr/development/iRadio/ -I /usr/development/iRadio/3rdParty/rapidxml/ -I /usr/development/iRadio/3rdParty/happyhttp/ -I /usr/development/iRadio/3rdParty/
 
 CC = /usr/packages/RaspberryPiTools/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-g++
 CXX = /usr/packages/RaspberryPiTools/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-g++
@@ -13,7 +13,7 @@ LIBSDEF = libs/ARMV6/libbass.so libs/ARMV6/libwiringPi.so.2.25 libs/ARMV6/libwir
 RM = rm -f 
 TARGET_EXEC = iRadio
  
-SRCS = iRadio.cpp BaseObject.cpp iRadioApp.cpp inifile.cpp LCDDisplay.cpp LCDDisplayTextParts.cpp module/Module.cpp module/ModuleI2C.cpp module/ModuleI2C_iRadioControl.cpp module/ModuleAudioPlayer.cpp module/ModuleAudioPlayer_BASS.cpp module/ModuleDisplay.cpp module/ModuleDisplay_LCD.cpp
+SRCS = iRadio.cpp BaseObject.cpp iRadioApp.cpp 3rdParty/inifile.cpp LCDDisplay.cpp LCDDisplayTextParts.cpp module/Module.cpp module/ModuleI2C.cpp module/ModuleI2C_iRadioControl.cpp module/ModuleAudioPlayer.cpp module/ModuleAudioPlayer_BASS.cpp module/ModuleDisplay.cpp module/ModuleDisplay_LCD.cpp 3rdParty/happyhttp/happyhttp.cpp 
 
 
 OBJS = $(SRCS:.cpp=.o)

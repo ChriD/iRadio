@@ -36,8 +36,9 @@ iRadioApp::~iRadioApp()
 
 int iRadioApp::init()
 {
-    string  soundDeviceIdString, radioControlI2CAddressString;
+    string  soundDeviceIdString, radioControlI2CAddressString, rowsString, colsString, tickMSString;
     int     soundDeviceId = 2, radioControlI2CAddress = 20;
+    unsigned int rows = 2, cols = 16, tickMS = 100;
 
     if(!iniObjectAppSettings.Load(iniFileNameAppSettings))
         debugInfo("Can not load App INI File: "  + iniFileNameAppSettings + " -> Using defaults!");
@@ -53,14 +54,25 @@ int iRadioApp::init()
         loadMem();
 
     soundDeviceIdString = iniObjectAppSettings.GetKeyValue("AppSettings", "SoundDeviceId");
-    if(!soundDeviceIdString.empty()) soundDeviceId = ::atoi(soundDeviceIdString.c_str());
+    if(!soundDeviceIdString.empty()) soundDeviceId = atoi(soundDeviceIdString.c_str());
 
     radioControlI2CAddressString = iniObjectAppSettings.GetKeyValue("AppSettings", "RadioControlI2CAddress");
-    if(!radioControlI2CAddressString.empty()) radioControlI2CAddress = ::atoi(radioControlI2CAddressString.c_str());
+    if(!radioControlI2CAddressString.empty()) radioControlI2CAddress = atoi(radioControlI2CAddressString.c_str());
+
+    rowsString = iniObjectAppSettings.GetKeyValue("AppSettings", "DisplayRows");
+    if(!rowsString.empty()) rows = (unsigned int)atoi(rowsString.c_str());
+
+    colsString = iniObjectAppSettings.GetKeyValue("AppSettings", "DisplayCols");
+    if(!colsString.empty()) cols = (unsigned int)atoi(colsString.c_str());
+
+    tickMSString = iniObjectAppSettings.GetKeyValue("AppSettings", "TickMS");
+    if(!tickMSString.empty()) tickMS = (unsigned int)atoi(tickMSString.c_str());
 
     moduleRadioControl  = new Module::ModuleI2C_iRadioControl(radioControlI2CAddress);
     moduleAudioPlayer   = new Module::ModuleAudioPlayer_BASS(soundDeviceId);
-    moduleDisplay       = new Module::ModuleDisplay_LCD();
+    moduleDisplay       = new Module::ModuleDisplay_LCD(rows, cols);
+
+    moduleDisplay->setTickMS(tickMS);
 
     sigConVolumeChanged.connect(            moduleRadioControl->sigVolumeChanged,               this, &iRadioApp::onVolumeChanged);
     sigConTunerChanged.connect(             moduleRadioControl->sigTunerChanged,                this, &iRadioApp::onTunerChanged);
@@ -123,6 +135,8 @@ void iRadioApp::onTunerButtonClicked()
 {
     debugInfo("Tune button clicked");
     // TODO: @@@
+    // radio list play selected radio / open selection
+
 }
 
 
@@ -137,13 +151,14 @@ void iRadioApp::onTunerButtonDoubleClicked()
 {
     debugInfo("Tuner button double-clicked");
     // TODO: @@@
+    // radio list move back one directory
 }
 
 
 void iRadioApp::onVolumeButtonClickedLong()
 {
-    debugInfo("Volume button clicked long");
-    // TODO: @@@
+    debugInfo("Show environment information");
+    moduleDisplay-> setEnvInfo(getLocalIP(), getVersion(), tempDisplayTextHoldTickCount * 2);
 }
 
 
@@ -151,6 +166,7 @@ void iRadioApp::onTunerButtonClickedLong()
 {
     debugInfo("Tune button clicked long");
     // TODO: @@@
+    // radio list play selected radio
 }
 
 
@@ -310,29 +326,86 @@ void iRadioApp::loadMem()
 
 void iRadioApp::run()
 {
-    cout << "Starting iRadio...\n";
+    debugInfo("Starting iRadio...");
 
     init();
 
     if(!moduleAudioPlayer->init())
     {
-        cout << "Error while init of Audio Player Module!\n";
+        failed("Error while init of Audio Player Module!");
+        return;
     }
 
     if(!moduleRadioControl->init())
     {
-        cout << "Error while init of Radio Control Module!\n";
+        failed("Error while init of Radio Control Module!");
+        return;
     }
 
     if(!moduleDisplay->init())
     {
-        cout << "Error while init of Display Control Module!\n";
+        failed("Error while init of Display Control Module!");
+        return;
     }
 
     resumeState();
 
     moduleRadioControl->startListener();
 
-    cout << "iRadio started!\n";
+    debugInfo("iRadio started!");
+}
+
+
+string iRadioApp::getVersion()
+{
+    return IRADIOAPP_VERSION;
+}
+
+
+string iRadioApp::getLocalIP()
+{
+
+    struct ifaddrs *ifAddrStruct = NULL;
+    struct ifaddrs *ifa = NULL;
+    void   *tmpAddrPtr = NULL;
+    string ipAddress = "";
+
+    getifaddrs(&ifAddrStruct);
+
+    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next)
+    {
+        if (!ifa->ifa_addr)
+            continue;
+
+        // check it is IP4
+        if (ifa->ifa_addr->sa_family == AF_INET)
+        {
+            // is a valid IP4 Address
+            tmpAddrPtr=&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+            char addressBuffer[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+            // okay, for now using fixed hardcoded 'wlan0'. It would be better to get 'active' one or to get from appIni file!
+            if(ipAddress.empty() && string(ifa->ifa_name) == "wlan0")
+                ipAddress = addressBuffer;
+            debugInfo("Found IP: " +  string(addressBuffer) + " (" + string(ifa->ifa_name) + ")") ;
+        }
+        // check it is IP6
+        else if (ifa->ifa_addr->sa_family == AF_INET6)
+        {
+            // is a valid IP6 Address
+            tmpAddrPtr=&((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
+            char addressBuffer[INET6_ADDRSTRLEN];
+            inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
+            // okay, for now using fixed hardcoded 'wlan0'. It would be better to get 'active' one or to get from appIni file!
+            if(ipAddress.empty() && string(ifa->ifa_name) == "wlan0")
+                ipAddress = addressBuffer;
+            debugInfo("Found IP: " +  string(addressBuffer) + " (" + string(ifa->ifa_name) + ")") ;
+        }
+    }
+
+    if (ifAddrStruct != NULL)
+        freeifaddrs(ifAddrStruct);
+
+    return ipAddress;
 }
 

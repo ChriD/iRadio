@@ -1,3 +1,14 @@
+
+http://api.shoutcast.com/genre/primary?k=ia9p4XYXmOPEtXzL&f=json
+http://api.shoutcast.com/genre/secondary?parentid=1&k=ia9p4XYXmOPEtXzL&f=json
+
+http://api.shoutcast.com/legacy/genrelist?k=ia9p4XYXmOPEtXzL&f=json
+http://api.shoutcast.com/legacy/stationsearch?k=ia9p4XYXmOPEtXzL&search=Austria&f=json
+
+http://wiki.shoutcast.com/wiki/SHOUTcast_Radio_Directory_API#How_To_Tune_Into_A_Station
+url:
+http://yp.shoutcast.com<base>?id=[Station_id]
+
 6MB Linux
 https://www.raspberrypi.org/forums/viewtopic.php?f=63&t=47634
 http://sourceforge.net/projects/mini-wheezy/
@@ -34,7 +45,14 @@ $sudo nano/etc/network/interfaces
 $sudo nano/etc/modules
 
 $sudo apt-get install alsa-utils
+
+$sudo apt-get install libcurl4-openssl-dev
+
 $sudo apt-get install i2c-tools
+
+#$tzselect
+#echo "TZ='Europe/London'; export TZ" >.profile
+$sudo dpkg-reconfigure tzdata
 
 #Einfach die Standard-Soundkarte definieren und fertig:
 # /etc/asound.conf als root anlegen mit:
@@ -51,6 +69,9 @@ $sudo apt-get install i2c-tools
 
 # dann rebooten! und volume einstellen
 $sudo alsamixer
+$sudo alsactl store
+
+$sudo apt-get install libcurl4-openssl-dev
 
 
 $sudo adduser pi i2c

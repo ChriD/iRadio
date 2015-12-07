@@ -1,6 +1,7 @@
 #pragma once
 
 #include <LCDDisplay.h>
+#include <ctime>
 
 namespace Hardware
 {
@@ -13,6 +14,7 @@ namespace Hardware
                 DisplayTextPart_TitleInfo(string, unsigned int);
                 virtual ~DisplayTextPart_TitleInfo();
                 virtual void tick() override;
+                virtual void setText(string, bool) override;
 
             protected:
                 unsigned int tickCountHold;
@@ -27,6 +29,16 @@ namespace Hardware
                 virtual ~DisplayTextPart_StationName();
                 virtual void tick() override;
         };
+
+
+        class  DisplayTextPart_DateTime : public DisplayTextPart
+        {
+            public:
+                DisplayTextPart_DateTime(string, unsigned int);
+                virtual ~DisplayTextPart_DateTime();
+                virtual void tick() override;
+        };
+
 
     }
 }

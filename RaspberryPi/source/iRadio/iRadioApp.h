@@ -6,6 +6,12 @@
 #include <unistd.h>
 #include <array>
 
+// includes for getting local IP
+#include <sys/types.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 // including baseObject
 #include <BaseObject.h>
 
@@ -24,13 +30,16 @@
 
 // including console stuff
 // https://github.com/tapio/rlutil
-#include "rlutil.h"
+#include "3rdParty/rlutil.h"
 
 // include iRadio moules
 // https://github.com/ChriD/iRadio
 #include <ModuleI2C_iRadioControl.h>
 #include <ModuleAudioPlayer_BASS.h>
 #include <ModuleDisplay_LCD.h>
+
+
+const string IRADIOAPP_VERSION = "0.8.1";
 
 
 class iRadioApp : BaseObject
@@ -79,6 +88,9 @@ class iRadioApp : BaseObject
 
         void playErrorSound();
         void playSuccessSound();
+
+        string getLocalIP();
+        string getVersion();
 
         sigs::connections   sigConVolumeChanged;
         sigs::connections   sigConTunerChanged;

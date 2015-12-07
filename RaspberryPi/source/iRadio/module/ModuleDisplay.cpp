@@ -37,6 +37,11 @@ namespace Module
     }
 
 
+    void ModuleDisplay::setEnvInfo(string _ip, string _version, unsigned int _tickCountToHold)
+    {
+    }
+
+
     void ModuleDisplay::setVolumeInfo(unsigned int _volumeInfo, unsigned int _tickCountToHold)
     {
     }

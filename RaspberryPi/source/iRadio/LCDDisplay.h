@@ -53,6 +53,7 @@ namespace Hardware
                 string center(string, int);
                 string &ltrim(string &);
                 string &rtrim(string &);
+                string &padTo(std::string &, const size_t, const char);
                 string          text;
                 string          originalText;
                 unsigned int    colCount;

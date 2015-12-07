@@ -18,6 +18,7 @@ namespace Module
             virtual void setAudioStreamInfo(AudioStreamInfo);
             virtual void setErrorInfo(string, unsigned int);
             virtual void setInfo(string, unsigned int);
+            virtual void setEnvInfo(string, string, unsigned int);
             virtual void setVolumeInfo(unsigned int, unsigned int);
 
         protected:

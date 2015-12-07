@@ -4,15 +4,21 @@
 namespace Module
 {
 
-    ModuleDisplay_LCD::ModuleDisplay_LCD()
+    ModuleDisplay_LCD::ModuleDisplay_LCD(unsigned int _rows, unsigned int _cols) : ModuleDisplay()
     {
-        displayColCount = LCDDisplay_Cols;
-        displayRowCount = LCDDisplay_Rows;
+        displayColCount = _cols;
+        displayRowCount = _rows;
         lcdDisplayController = shared_ptr<LCDDisplayController>(new LCDDisplayController(displayRowCount, displayColCount));
 
         isTempTextActive        = false;
         tickCountTempText       = 0;
         tickCountTempTextHold   = 0;
+
+        stationInfoRow          = 1;
+        titleInfoRow            = 2;
+        otherInfoRow            = 0;
+
+        tickMS                  = 100;
 
     }
 
@@ -39,10 +45,35 @@ namespace Module
     }
 
 
+    void ModuleDisplay_LCD::setTickMS(unsigned int _tickMS)
+    {
+        tickMS = _tickMS;
+    }
+
+
+    void ModuleDisplay_LCD::createDisplayTextVectorWebRadioSelectionScreen()
+    {
+        // TODO:
+
+        for(unsigned int i=0; i<displayRowCount; ++i)
+        {
+            vector<shared_ptr<DisplayTextPart>> displayTextPartVector;
+            displayTextPartVector.push_back(shared_ptr<DisplayTextPart>(new DisplayTextPart("", displayColCount-2)));
+            displayTextPartVector.push_back(shared_ptr<DisplayTextPart>(new DisplayTextPart(" ", 2)));
+            displayTextVectorHomeScreen.push_back(shared_ptr<DisplayText>(new DisplayText(displayTextPartVector, displayColCount)));
+        }
+
+    }
+
+
     void ModuleDisplay_LCD::createDisplayTextVectorHomeScreen()
     {
         if(displayRowCount == 2)
         {
+            stationInfoRow          = 1;
+            titleInfoRow            = 2;
+            otherInfoRow            = 0;
+
             // set line one which will show the name of the station
             vector<shared_ptr<DisplayTextPart>> displayTextPartVector;
             displayTextPartVector.push_back(shared_ptr<DisplayTextPart>(new DisplayTextPart_StationName("Kein Stream", displayColCount)));
@@ -52,6 +83,35 @@ namespace Module
             vector<shared_ptr<DisplayTextPart>> displayTextPartVector2;
             displayTextPartVector2.push_back(shared_ptr<DisplayTextPart>(new DisplayTextPart_TitleInfo("....", displayColCount)));
             displayTextVectorHomeScreen.push_back(shared_ptr<DisplayText>(new DisplayText(displayTextPartVector2, displayColCount)));
+
+            // set vector with the shared pointers to the controller (copy of pointers)
+            lcdDisplayController->setDisplayTextVector(displayTextVectorHomeScreen);
+        }
+        else if (displayRowCount == 4)
+        {
+            stationInfoRow          = 2;
+            titleInfoRow            = 3;
+            otherInfoRow            = 4;
+
+            // date + time
+            vector<shared_ptr<DisplayTextPart>> displayTextPartVector;
+            displayTextPartVector.push_back(shared_ptr<DisplayTextPart>(new DisplayTextPart_DateTime("", displayColCount)));
+            displayTextVectorHomeScreen.push_back(shared_ptr<DisplayText>(new DisplayText(displayTextPartVector, displayColCount)));
+
+            // set line 2 which will show the name of the station
+            vector<shared_ptr<DisplayTextPart>> displayTextPartVector2;
+            displayTextPartVector2.push_back(shared_ptr<DisplayTextPart>(new DisplayTextPart_StationName("Kein Stream", displayColCount)));
+            displayTextVectorHomeScreen.push_back(shared_ptr<DisplayText>(new DisplayText(displayTextPartVector2, displayColCount)));
+
+            // set line 3 which will show the song title + artist, the error info or the volume
+            vector<shared_ptr<DisplayTextPart>> displayTextPartVector3;
+            displayTextPartVector3.push_back(shared_ptr<DisplayTextPart>(new DisplayTextPart_TitleInfo("....", displayColCount)));
+            displayTextVectorHomeScreen.push_back(shared_ptr<DisplayText>(new DisplayText(displayTextPartVector3, displayColCount)));
+
+            // bitrate
+            vector<shared_ptr<DisplayTextPart>> displayTextPartVector4;
+            displayTextPartVector4.push_back(shared_ptr<DisplayTextPart>(new DisplayTextPart_TitleInfo("....", displayColCount)));
+            displayTextVectorHomeScreen.push_back(shared_ptr<DisplayText>(new DisplayText(displayTextPartVector4, displayColCount)));
 
             // set vector with the shared pointers to the controller (copy of pointers)
             lcdDisplayController->setDisplayTextVector(displayTextVectorHomeScreen);
@@ -89,10 +149,19 @@ namespace Module
         setTempTextActive(_tickCountToHold);
     }
 
+
     void ModuleDisplay_LCD::setInfo(string _info, unsigned int _tickCountToHold)
     {
         ModuleDisplay::setInfo(_info, _tickCountToHold);
         showInfo(_info);
+        setTempTextActive(_tickCountToHold);
+    }
+
+
+    void ModuleDisplay_LCD::setEnvInfo(string _ip, string _version, unsigned int _tickCountToHold)
+    {
+        ModuleDisplay::setEnvInfo(_ip, _version, _tickCountToHold);
+        showEnvInfo(_ip, _version);
         setTempTextActive(_tickCountToHold);
     }
 
@@ -108,28 +177,65 @@ namespace Module
     void ModuleDisplay_LCD::showAudioStreamInfo()
     {
         debugInfo("send audio stream data to LCD-Display controller");
-        lcdDisplayController->setText(1,1, audioStreamInfo.name);
-        lcdDisplayController->setText(2,1, audioStreamInfo.title);
+        lcdDisplayController->setText(stationInfoRow, 1, audioStreamInfo.name);
+        lcdDisplayController->setText(titleInfoRow, 1, audioStreamInfo.title);
+        if(otherInfoRow > 0)
+            lcdDisplayController->setText(otherInfoRow, 1, audioStreamInfo.bitrate + " kbps");
     }
 
 
     void ModuleDisplay_LCD::showVolumeInfo(unsigned int _volume)
     {
-        lcdDisplayController->setText(2,1, "Volume: " + to_string(_volume));
+        if(otherInfoRow > 0)
+            lcdDisplayController->setText(otherInfoRow,1, "Volume: " + to_string(_volume));
+        else
+            lcdDisplayController->setText(titleInfoRow,1, "Volume: " + to_string(_volume));
     }
 
 
     void ModuleDisplay_LCD::showErrorInfo(string _error)
     {
-        lcdDisplayController->setText(1,1, "! FEHLER !");
-        lcdDisplayController->setText(2,1, _error);
+        if(displayRowCount == 4)
+        {
+            lcdDisplayController->setText(stationInfoRow, 1, "");
+            lcdDisplayController->setText(titleInfoRow, 1, "! FEHLER !");
+            lcdDisplayController->setText(otherInfoRow, 1, _error);
+        }
+        else
+        {
+            lcdDisplayController->setText(stationInfoRow,1, "! FEHLER !");
+            lcdDisplayController->setText(titleInfoRow,1, _error);
+        }
     }
 
 
     void ModuleDisplay_LCD::showInfo(string _info)
     {
-        lcdDisplayController->setText(1,1, audioStreamInfo.name);
-        lcdDisplayController->setText(2,1, _info);
+        lcdDisplayController->setText(stationInfoRow,1, audioStreamInfo.name);
+        if(otherInfoRow > 0)
+        {
+            lcdDisplayController->setText(titleInfoRow, 1, audioStreamInfo.title);
+            lcdDisplayController->setText(otherInfoRow, 1, _info);
+        }
+        else
+            lcdDisplayController->setText(titleInfoRow, 1, _info);
+
+    }
+
+    void ModuleDisplay_LCD::showEnvInfo(string _ip, string _version)
+    {
+        // TODO: @@@
+        if(displayRowCount == 4)
+        {
+            lcdDisplayController->setText(stationInfoRow, 1, "");
+            lcdDisplayController->setText(titleInfoRow, 1, "Version: " + _version);
+            lcdDisplayController->setText(otherInfoRow, 1, "IP: " + _ip);
+        }
+        else
+        {
+            lcdDisplayController->setText(stationInfoRow, 1, "Version: " + _version);
+            lcdDisplayController->setText(titleInfoRow, 1, "IP: " + _ip);
+        }
     }
 
 
@@ -173,7 +279,7 @@ namespace Module
                 failed("Exception in 'displayUpdateThread'!");
             }
 
-            this_thread::sleep_for(std::chrono::milliseconds(100));
+            this_thread::sleep_for(std::chrono::milliseconds(tickMS));
         }
     }
 

@@ -92,6 +92,12 @@ namespace Hardware
             return _s;
         }
 
+        string &DisplayTextPart::padTo(std::string &_str, const size_t _num, const char _paddingChar = ' ')
+        {
+            if(_num > _str.size())
+                _str.insert(0, _num - _str.size(), _paddingChar);
+        }
+
 
         void DisplayTextPart::tick()
         {
