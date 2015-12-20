@@ -19,7 +19,7 @@
   OneButton volumeRotaryButton(7, true);
   OneButton tuneRotaryButton(6, true);
 
-  Encoder volumeRotaryEncoder(2, 4);
+  Encoder volumeRotaryEncoder(0, 1);
   Encoder tuneRotaryEncoder(3, 5);
   
   int ledPin_memButton1 = 12;
